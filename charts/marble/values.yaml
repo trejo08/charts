@@ -1,0 +1,317 @@
+# ============================================================
+# GLOBAL
+# ============================================================
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  create: true
+  name: marble
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: marble
+  annotations: {}
+  # IRSA on AWS:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/marble-irsa
+
+# ============================================================
+# IMAGES — all versions in one place
+# Official registry: europe-west1-docker.pkg.dev/marble-infra/marble/
+# ============================================================
+images:
+  backend:
+    repository: europe-west1-docker.pkg.dev/marble-infra/marble/marble-backend
+    tag: "v1.1.0"
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: europe-west1-docker.pkg.dev/marble-infra/marble/marble-frontend
+    tag: "v1.1.1"
+    pullPolicy: IfNotPresent
+
+# ============================================================
+# MIGRATIONS JOB (./app --migrations)
+# Runs as a Helm hook pre-install and pre-upgrade
+# ============================================================
+migrations:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 3600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ============================================================
+# API (./app --server)
+# Exposes REST API: /ingest/*, /decisions, /liveness, /health
+# ============================================================
+api:
+  replicaCount: 1
+  port: 8080
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  probes:
+    liveness:
+      path: /liveness
+      initialDelaySeconds: 10
+      periodSeconds: 15
+      failureThreshold: 3
+    readiness:
+      path: /health
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      failureThreshold: 3
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+# ============================================================
+# WORKER (./app --worker)
+# Processes River job queue over PostgreSQL.
+# Do not scale horizontally — River does not coordinate multiple workers by default.
+# ============================================================
+worker:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  nodeSelector: {}
+  tolerations: []
+
+# ============================================================
+# ANALYTICS (./app --analytics) — OPTIONAL
+# DuckDB server reading Parquet files from blob storage.
+# Only needed for BI access to historical data.
+# ============================================================
+analytics:
+  enabled: false
+  port: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  # Internal proxy URL used by the API to forward analytics queries.
+  # Auto-constructed if empty: http://{{ fullname }}-analytics:8080
+  proxyUrl: ""
+
+# ============================================================
+# FRONTEND
+# ============================================================
+frontend:
+  replicaCount: 1
+  port: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+  probes:
+    readiness:
+      path: /healthcheck
+      initialDelaySeconds: 10
+      periodSeconds: 10
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+
+# ============================================================
+# INGRESS
+# ============================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  frontend:
+    hostname: marble.example.com
+    tls:
+      enabled: false
+      secretName: ""
+  # Separate subdomain for API (recommended for external integrations)
+  api:
+    enabled: false
+    hostname: api.marble.example.com
+    tls:
+      enabled: false
+      secretName: ""
+
+# ============================================================
+# MARBLE CONFIGURATION
+# Env vars shared by api, worker, and analytics
+# ============================================================
+marble:
+  env: production
+  appUrl: ""           # https://marble.example.com — REQUIRED
+  licenseKey: ""
+  disableSegment: "false"
+  loggingFormat: json
+  requestLoggingLevel: ""
+
+  # PostgreSQL (PostGIS extension required)
+  # Use connectionString OR individual vars, not both
+  postgres:
+    connectionString: ""   # postgres://user:pass@host:5432/marble?sslmode=require
+    hostname: ""
+    port: "5432"
+    user: ""
+    password: ""
+    sslMode: require
+    maxPoolSize: "40"
+    # Advanced: per-org separate PostgreSQL database (data residency / multi-tenancy)
+    # Create a K8s Secret with key "config.json" containing the JSON config map,
+    # then reference it here. The chart mounts it and sets CLIENT_DB_CONFIG_FILE.
+    # JSON format: { "<org-uuid>": { "connection_string": "...", "max_conns": 40 }, "default": {...} }
+    clientDbConfigSecretName: ""
+    clientDbConfigMountPath: "/client-db-config"
+
+  # JWT authentication (signing of internal tokens)
+  auth:
+    jwtSigningKey: ""       # inline — not recommended in production
+    jwtSigningKeyFile: ""   # path inside container, e.g. /secrets/jwt.pem
+
+  # Firebase Auth (Marble's default auth provider)
+  firebase:
+    enabled: true
+    apiKey: ""
+    projectId: ""
+    googleCloudProject: ""
+    # K8s Secret containing firebase.json (GCP service account)
+    credentialsSecretName: ""
+    credentialsKey: "firebase.json"
+    credentialsMountPath: "/secrets/firebase"
+
+  # Generic OIDC (alternative to Firebase — Cognito, Keycloak, etc.)
+  oidc:
+    enabled: false
+    issuer: ""
+    clientId: ""
+    clientSecret: ""
+    scope: "openid,email,profile"
+    allowedDomains: ""
+
+  # Blob storage — S3 (s3://), GCS (gs://), Azure (azblob://), MinIO, local (file://)
+  # With IRSA on AWS no explicit credentials are needed
+  storage:
+    ingestionBucketUrl: ""      # s3://marble-ingestion
+    caseManagerBucketUrl: ""    # s3://marble-cases
+    analyticsBucketUrl: ""      # s3://marble-analytics
+    offloading:
+      enabled: false
+      bucketUrl: ""             # s3://marble-offloading
+      jobInterval: "30m"
+      before: "168h"
+      batchSize: "10000"
+      savePins: "1000"
+      writesPerSec: "200"
+
+  # Bootstrap — only on first start, creates the initial org
+  bootstrap:
+    orgName: ""
+    orgAdminEmail: ""
+
+  # ── Secret management ────────────────────────────────────────
+  # Option A (recommended): External Secrets Operator creates the K8s Secret automatically.
+  # The chart renders an ExternalSecret pointing to the ClusterSecretStore.
+  # apiVersion is auto-detected via .Capabilities.APIVersions:
+  #   external-secrets.io/v1       → ESO >= 0.17.0 / v1.0.0 GA (default)
+  #   external-secrets.io/v1beta1  → ESO < 0.17.0 (legacy, auto-fallback)
+  externalSecret:
+    enabled: true
+    clusterSecretStore: ""    # Name of the ClusterSecretStore in the cluster
+    remoteSecretName: ""      # Key/path in the external backend (e.g. AWS Secrets Manager key name)
+    refreshInterval: "1h"
+    # The destination K8s Secret name is always "{{ fullname }}-secrets" — not configurable.
+
+  # Option B (fallback): bring your own K8s Secret (created externally).
+  # Only used when externalSecret.enabled = false.
+  # The Secret MUST be named "{{ fullname }}-secrets".
+  existingSecret:
+    enabled: false
+
+# ============================================================
+# FRONTEND CONFIG
+# ============================================================
+frontendConfig:
+  sessionSecret: ""       # REQUIRED — secure random string (min 32 chars)
+  sessionMaxAge: "43200"  # seconds (12h default)
+  # Internal URL to the API. Auto-constructed if empty: http://{{ fullname }}-api:8080
+  marbleApiUrl: ""
+
+# ============================================================
+# SANCTIONS SCREENING (optional)
+# Self-hosted stack: Elasticsearch (via ECK) + Yente + Motiva
+# Recommended alternative: OpenSanctions SaaS API
+# PREREQUISITE: ECK Operator must be installed if sanctions.enabled = true
+# ============================================================
+sanctions:
+  enabled: false
+
+  opensanctions:
+    apiHost: ""          # if set, use SaaS API instead of self-hosted Motiva
+    authMethod: "api-key"
+    apiKey: ""
+
+  elasticsearch:
+    # Managed via Elastic Cloud on Kubernetes (ECK) Operator
+    # Docs: https://www.elastic.co/guide/en/cloud-on-k8s/current/
+    version: "9.3.1"
+    replicas: 1
+    storage:
+      storageClassName: ""
+      size: 30Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 3Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+
+  yente:
+    image:
+      repository: ghcr.io/opensanctions/yente
+      tag: "5.4.0"
+    schedule: "0 3 * * *"   # daily re-index at 3am
+
+  motiva:
+    image:
+      repository: ghcr.io/apognu/motiva
+      tag: "v0.8.1"
+    port: 8000
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

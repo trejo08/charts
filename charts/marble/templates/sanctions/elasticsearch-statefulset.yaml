@@ -1,0 +1,36 @@
+{{- if .Values.sanctions.enabled }}
+{{- if not .Values.sanctions.opensanctions.apiHost }}
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: {{ include "marble.fullname" . }}-sanctions
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marble.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sanctions-elasticsearch
+spec:
+  version: {{ .Values.sanctions.elasticsearch.version | quote }}
+  nodeSets:
+    - name: default
+      count: {{ .Values.sanctions.elasticsearch.replicas }}
+      config:
+        node.store.allow_mmap: false
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              resources:
+                {{- toYaml .Values.sanctions.elasticsearch.resources | nindent 16 }}
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes: [ReadWriteOnce]
+            {{- if .Values.sanctions.elasticsearch.storage.storageClassName }}
+            storageClassName: {{ .Values.sanctions.elasticsearch.storage.storageClassName }}
+            {{- end }}
+            resources:
+              requests:
+                storage: {{ .Values.sanctions.elasticsearch.storage.size }}
+{{- end }}
+{{- end }}

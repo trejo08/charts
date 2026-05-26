@@ -1,0 +1,58 @@
+{{- if .Values.analytics.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "marble.fullname" . }}-analytics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marble.labels" . | nindent 4 }}
+    app.kubernetes.io/component: analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "marble.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: analytics
+  template:
+    metadata:
+      labels:
+        {{- include "marble.labels" . | nindent 8 }}
+        app.kubernetes.io/component: analytics
+    spec:
+      serviceAccountName: {{ include "marble.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: analytics
+          image: "{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}"
+          imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+          args: ["--analytics"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.analytics.port }}
+              protocol: TCP
+          {{- $envFrom := include "marble.backendEnvFrom" . }}
+          {{- if $envFrom }}
+          envFrom:
+            {{- $envFrom | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "marble.backendEnv" . | nindent 12 }}
+          {{- with .Values.analytics.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- $mounts := include "marble.backendVolumeMounts" . }}
+          {{- if $mounts }}
+          volumeMounts:
+            {{- $mounts | nindent 12 }}
+          {{- end }}
+      {{- $vols := include "marble.backendVolumes" . }}
+      {{- if $vols }}
+      volumes:
+        {{- $vols | nindent 8 }}
+      {{- end }}
+{{- end }}

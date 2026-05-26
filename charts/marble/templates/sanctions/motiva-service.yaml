@@ -1,0 +1,23 @@
+{{- if .Values.sanctions.enabled }}
+{{- if not .Values.sanctions.opensanctions.apiHost }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "marble.fullname" . }}-motiva
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marble.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sanctions-motiva
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ include "marble.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: sanctions-motiva
+  ports:
+    - name: http
+      port: {{ .Values.sanctions.motiva.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}
+{{- end }}

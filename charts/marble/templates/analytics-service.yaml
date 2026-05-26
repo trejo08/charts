@@ -1,0 +1,21 @@
+{{- if .Values.analytics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "marble.fullname" . }}-analytics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marble.labels" . | nindent 4 }}
+    app.kubernetes.io/component: analytics
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ include "marble.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: analytics
+  ports:
+    - name: http
+      port: {{ .Values.analytics.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}

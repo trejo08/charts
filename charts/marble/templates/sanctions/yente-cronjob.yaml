@@ -1,0 +1,41 @@
+{{- if .Values.sanctions.enabled }}
+{{- if not .Values.sanctions.opensanctions.apiHost }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "marble.fullname" . }}-yente-index
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marble.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sanctions-yente
+spec:
+  schedule: {{ .Values.sanctions.yente.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "marble.labels" . | nindent 12 }}
+            app.kubernetes.io/component: sanctions-yente
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: yente
+              image: "{{ .Values.sanctions.yente.image.repository }}:{{ .Values.sanctions.yente.image.tag }}"
+              imagePullPolicy: IfNotPresent
+              args: ["yente", "index"]
+              env:
+                - name: YENTE_ELASTICSEARCH_URL
+                  value: "https://{{ include "marble.fullname" . }}-sanctions-es-http:9200"
+                - name: YENTE_ES_INDEX
+                  value: opensanctions
+                - name: YENTE_ELASTICSEARCH_USERNAME
+                  value: elastic
+                - name: YENTE_ELASTICSEARCH_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "marble.fullname" . }}-sanctions-es-elastic-user
+                      key: elastic
+{{- end }}
+{{- end }}

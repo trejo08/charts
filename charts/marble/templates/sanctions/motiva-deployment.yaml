@@ -1,0 +1,50 @@
+{{- if .Values.sanctions.enabled }}
+{{- if not .Values.sanctions.opensanctions.apiHost }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "marble.fullname" . }}-motiva
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marble.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sanctions-motiva
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "marble.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: sanctions-motiva
+  template:
+    metadata:
+      labels:
+        {{- include "marble.labels" . | nindent 8 }}
+        app.kubernetes.io/component: sanctions-motiva
+    spec:
+      serviceAccountName: {{ include "marble.serviceAccountName" . }}
+      containers:
+        - name: motiva
+          image: "{{ .Values.sanctions.motiva.image.repository }}:{{ .Values.sanctions.motiva.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: {{ .Values.sanctions.motiva.port }}
+              protocol: TCP
+          env:
+            - name: ELASTICSEARCH_URL
+              value: "https://{{ include "marble.fullname" . }}-sanctions-es-http:9200"
+            - name: ELASTICSEARCH_USERNAME
+              value: elastic
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "marble.fullname" . }}-sanctions-es-elastic-user
+                  key: elastic
+            - name: ELASTICSEARCH_INDEX
+              value: opensanctions
+          {{- with .Values.sanctions.motiva.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
+{{- end }}

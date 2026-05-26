@@ -1,0 +1,44 @@
+Marble has been deployed successfully.
+
+API endpoint:
+{{- if .Values.ingress.enabled }}
+  {{- if .Values.ingress.frontend.tls.enabled }}
+  https://{{ .Values.ingress.frontend.hostname }}
+  {{- else }}
+  http://{{ .Values.ingress.frontend.hostname }}
+  {{- end }}
+{{- else }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "marble.fullname" . }}-frontend 8080:{{ .Values.frontend.port }}
+  http://localhost:8080
+{{- end }}
+
+{{- if .Values.ingress.api.enabled }}
+
+API (ingest / decisions):
+  {{- if .Values.ingress.api.tls.enabled }}
+  https://{{ .Values.ingress.api.hostname }}
+  {{- else }}
+  http://{{ .Values.ingress.api.hostname }}
+  {{- end }}
+{{- end }}
+
+Components deployed:
+  - Migrations job (pre-install/pre-upgrade hook)
+  - API server (--server)
+  - Worker (--worker)
+  - Frontend
+{{- if .Values.analytics.enabled }}
+  - Analytics (--analytics)
+{{- end }}
+{{- if .Values.sanctions.enabled }}
+  - Sanctions stack (Elasticsearch + Yente + Motiva)
+{{- end }}
+
+Verify pods are running:
+  kubectl -n {{ .Release.Namespace }} get pods
+
+Check API liveness:
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "marble.fullname" . }}-api -- \
+    wget -qO- http://localhost:{{ .Values.api.port }}/liveness
+
+Documentation: https://docs.checkmarble.com
