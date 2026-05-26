@@ -84,6 +84,19 @@ external-secrets.io/v1beta1
 {{- end }}
 
 {{/*
+JWT signing key mount path.
+When externalSecret.jwtSigningKeyProperty is set, the decoded PEM is mounted at /secrets/jwt.pem
+from the <secretName>-jwt Secret. Can be overridden via marble.auth.jwtSigningKeyFile.
+*/}}
+{{- define "marble.jwtMountPath" -}}
+{{- if .Values.marble.auth.jwtSigningKeyFile -}}
+{{- .Values.marble.auth.jwtSigningKeyFile -}}
+{{- else if and .Values.marble.externalSecret.enabled .Values.marble.externalSecret.jwtSigningKeyProperty -}}
+/secrets/jwt.pem
+{{- end -}}
+{{- end }}
+
+{{/*
 Backend envFrom — secret ref rendered as a separate block from env:.
 */}}
 {{- define "marble.backendEnvFrom" -}}
@@ -137,10 +150,12 @@ Backend env vars — shared by api, worker, analytics, and migrations.
 {{- if .Values.marble.auth.jwtSigningKey }}
 - name: AUTHENTICATION_JWT_SIGNING_KEY
   value: {{ .Values.marble.auth.jwtSigningKey | quote }}
-{{- end }}
-{{- if .Values.marble.auth.jwtSigningKeyFile }}
+{{- else }}
+{{- $jwtPath := include "marble.jwtMountPath" . }}
+{{- if $jwtPath }}
 - name: AUTHENTICATION_JWT_SIGNING_KEY_FILE
-  value: {{ .Values.marble.auth.jwtSigningKeyFile | quote }}
+  value: {{ $jwtPath | quote }}
+{{- end }}
 {{- end }}
 {{- if .Values.marble.firebase.enabled }}
 {{- if .Values.marble.firebase.apiKey }}
@@ -239,12 +254,13 @@ Backend volumes — Firebase JSON, JWT PEM, client DB config.
       - key: {{ .Values.marble.firebase.credentialsKey }}
         path: {{ .Values.marble.firebase.credentialsKey }}
 {{- end }}
-{{- if .Values.marble.auth.jwtSigningKeyFile }}
+{{- $jwtPath := include "marble.jwtMountPath" . }}
+{{- if $jwtPath }}
 - name: jwt-signing-key
   secret:
-    secretName: {{ include "marble.secretName" . }}
+    secretName: {{ include "marble.secretName" . }}-jwt
     items:
-      - key: AUTHENTICATION_JWT_SIGNING_KEY
+      - key: jwt.pem
         path: jwt.pem
 {{- end }}
 {{- if .Values.marble.postgres.clientDbConfigSecretName }}
@@ -266,9 +282,10 @@ Backend volume mounts.
   mountPath: {{ .Values.marble.firebase.credentialsMountPath }}
   readOnly: true
 {{- end }}
-{{- if .Values.marble.auth.jwtSigningKeyFile }}
+{{- $jwtPath := include "marble.jwtMountPath" . }}
+{{- if $jwtPath }}
 - name: jwt-signing-key
-  mountPath: {{ dir .Values.marble.auth.jwtSigningKeyFile }}
+  mountPath: {{ dir $jwtPath }}
   readOnly: true
 {{- end }}
 {{- if .Values.marble.postgres.clientDbConfigSecretName }}

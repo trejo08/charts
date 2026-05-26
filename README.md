@@ -13,7 +13,7 @@ helm repo update
 
 | Chart | Description | Version | App Version |
 |-------|-------------|---------|-------------|
-| [marble](charts/marble/) | Kubernetes deployment for [Marble](https://www.checkmarble.com) — open-source fraud detection and AML platform | 0.1.1 | 1.1.0 |
+| [marble](charts/marble/) | Kubernetes deployment for [Marble](https://www.checkmarble.com) — open-source fraud detection and AML platform | 0.1.2 | 1.1.0 |
 
 ## Install a chart
 
@@ -22,7 +22,7 @@ helm repo update
 helm install marble trejo08/marble
 
 # OCI registry
-helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.1
+helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.2
 ```
 
 ## marble

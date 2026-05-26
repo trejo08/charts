@@ -9,6 +9,38 @@ Charts follow [Semantic Versioning](https://semver.org/).
 
 ## marble
 
+### [0.1.2] - 2026-05-26
+
+#### Added
+
+- `marble.externalSecret.jwtSigningKeyProperty` (default: `JWT_SIGNING_KEY_B64`) — configures the
+  key name in the remote secret that holds the RSA private key PEM encoded in base64.
+- Second `ExternalSecret` resource (`<release>-secrets-jwt`) rendered when
+  `jwtSigningKeyProperty` is non-empty. Uses `decodingStrategy: Base64` to decode the PEM and
+  writes it as `jwt.pem` into a dedicated Kubernetes Secret, keeping it separate from the main
+  env-var secret to avoid JSON encoding issues with multi-line values.
+- `marble.jwtMountPath` helper — auto-constructs the container mount path (`/secrets/jwt.pem`)
+  from `jwtSigningKeyProperty` without requiring manual `marble.auth.jwtSigningKeyFile` config.
+- `AUTHENTICATION_JWT_SIGNING_KEY_FILE` is now injected automatically when the JWT ExternalSecret
+  is active, pointing to the mounted PEM file path.
+
+#### Fixed
+
+- Storing the RSA private key PEM directly as a multi-line JSON string value in AWS Secrets
+  Manager caused `invalid character '\n' in string literal` — the `ExternalSecret` failed with
+  `could not get secret data from provider`, blocking the entire sync. The new design stores the
+  PEM base64-encoded under a separate key and decodes it at the ESO layer.
+
+#### Changed
+
+- `marble.backendVolumes` and `marble.backendVolumeMounts` now reference `<release>-secrets-jwt`
+  (with key `jwt.pem`) instead of the main secret. The volume is mounted whenever
+  `jwtSigningKeyProperty` is non-empty.
+- `marble.auth.jwtSigningKeyFile` is now an override — when left empty, the path is
+  auto-derived from `jwtSigningKeyProperty`. Explicit value still takes precedence.
+
+---
+
 ### [0.1.1] - 2026-05-26
 
 #### Fixed

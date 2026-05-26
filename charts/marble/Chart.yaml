@@ -2,7 +2,7 @@ apiVersion: v2
 name: marble
 description: Kubernetes Helm chart for Marble — open-source fraud detection and AML platform
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "1.1.0"
 keywords:
   - fraud-detection
@@ -16,3 +16,27 @@ sources:
 maintainers:
   - name: Juan Trejo
     url: https://github.com/trejo08
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: security
+  artifacthub.io/links: |
+    - name: Marble Documentation
+      url: https://docs.checkmarble.com
+    - name: Marble GitHub
+      url: https://github.com/checkmarble/marble
+    - name: support
+      url: https://github.com/trejo08/charts/issues
+  artifacthub.io/images: |
+    - name: marble-backend
+      image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-backend:v1.1.0
+    - name: marble-frontend
+      image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-frontend:v1.1.1
+  artifacthub.io/changes: |
+    - kind: added
+      description: "jwtSigningKeyProperty — configurable key name in remote secret for base64-encoded RSA PEM"
+    - kind: added
+      description: "Second ExternalSecret (<release>-secrets-jwt) with decodingStrategy: Base64 for JWT key"
+    - kind: fixed
+      description: "RSA private key PEM with literal newlines breaking JSON in AWS Secrets Manager"
+    - kind: changed
+      description: "JWT volume now references <release>-secrets-jwt secret with jwt.pem key"

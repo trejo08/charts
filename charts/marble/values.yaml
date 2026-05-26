@@ -196,8 +196,8 @@ marble:
 
   # JWT authentication (signing of internal tokens)
   auth:
-    jwtSigningKey: ""       # inline — not recommended in production
-    jwtSigningKeyFile: ""   # path inside container, e.g. /secrets/jwt.pem
+    jwtSigningKey: ""       # inline PEM with \n escaping — not recommended in production
+    jwtSigningKeyFile: ""   # override mount path; auto-set to /secrets/jwt.pem when externalSecret.jwtSigningKeyProperty is set
 
   # Firebase Auth (Marble's default auth provider)
   firebase:
@@ -250,6 +250,13 @@ marble:
     clusterSecretStore: ""    # Name of the ClusterSecretStore in the cluster
     remoteSecretName: ""      # Key/path in the external backend (e.g. AWS Secrets Manager key name)
     refreshInterval: "1h"
+    # Key name in the remote secret that holds the RSA private key PEM encoded in base64.
+    # The chart creates a separate ExternalSecret that decodes this value and mounts it
+    # as a file at /secrets/jwt.pem, used by AUTHENTICATION_JWT_SIGNING_KEY_FILE.
+    # Default: JWT_SIGNING_KEY_B64
+    # To disable JWT file mounting (e.g. key is already in the main secret as plaintext
+    # with \n escaping), set this to empty string "".
+    jwtSigningKeyProperty: "JWT_SIGNING_KEY_B64"
     # The destination K8s Secret name is always "{{ fullname }}-secrets" — not configurable.
 
   # Option B (fallback): bring your own K8s Secret (created externally).
