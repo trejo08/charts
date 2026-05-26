@@ -3,6 +3,29 @@ entries:
   marble:
   - apiVersion: v2
     appVersion: 1.1.0
+    created: "2026-05-26T17:59:28.570050822Z"
+    description: Kubernetes Helm chart for Marble — open-source fraud detection and
+      AML platform
+    digest: ab823c45bd9f1acabbb0c84f5f380f8cb5ecf4409a913b1479a3ccdc8d90df56
+    home: https://www.checkmarble.com
+    keywords:
+    - fraud-detection
+    - aml
+    - compliance
+    - marble
+    maintainers:
+    - name: Juan Trejo
+      url: https://github.com/trejo08
+    name: marble
+    sources:
+    - https://github.com/checkmarble/marble
+    - https://github.com/trejo08/charts
+    type: application
+    urls:
+    - https://github.com/trejo08/charts/releases/download/marble-0.1.1/marble-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 1.1.0
     created: "2026-05-26T00:28:23.716251589Z"
     description: Kubernetes Helm chart for Marble — open-source fraud detection and
       AML platform
@@ -24,4 +47,4 @@ entries:
     urls:
     - https://github.com/trejo08/charts/releases/download/marble-0.1.0/marble-0.1.0.tgz
     version: 0.1.0
-generated: "2026-05-26T00:28:23.71626156Z"
+generated: "2026-05-26T17:59:28.570058988Z"
