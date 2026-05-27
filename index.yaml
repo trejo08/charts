@@ -4,6 +4,53 @@ entries:
   - annotations:
       artifacthub.io/category: security
       artifacthub.io/changes: |
+        - kind: changed
+          description: "jwtSigningKeyProperty only required when remote secret key name differs from default JWT_SIGNING_KEY_B64"
+        - kind: changed
+          description: "AUTHENTICATION_JWT_SIGNING_KEY_FILE injected via env[] only when jwtSigningKeyProperty is set; env[] takes precedence over envFrom"
+        - kind: added
+          description: "marble.validateSecrets gate — fails at render time if secret configuration is incomplete"
+        - kind: added
+          description: "ArtifactHub support: artifacthub-repo.yml, LICENSE, Chart.yaml annotations, gh-pages publish step"
+      artifacthub.io/images: |
+        - name: marble-backend
+          image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-backend:v1.1.0
+        - name: marble-frontend
+          image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-frontend:v1.1.1
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Marble Documentation
+          url: https://docs.checkmarble.com
+        - name: Marble GitHub
+          url: https://github.com/checkmarble/marble
+        - name: support
+          url: https://github.com/trejo08/charts/issues
+    apiVersion: v2
+    appVersion: 1.1.0
+    created: "2026-05-27T00:01:03.310949871Z"
+    description: Kubernetes Helm chart for Marble — open-source fraud detection and
+      AML platform
+    digest: 898fc2ac08b82a1004579156546190d0760e26ef43d8ba4ea6a4cea3cc748df9
+    home: https://www.checkmarble.com
+    keywords:
+    - fraud-detection
+    - aml
+    - compliance
+    - marble
+    maintainers:
+    - name: Juan Trejo
+      url: https://github.com/trejo08
+    name: marble
+    sources:
+    - https://github.com/checkmarble/marble
+    - https://github.com/trejo08/charts
+    type: application
+    urls:
+    - https://github.com/trejo08/charts/releases/download/marble-0.1.3/marble-0.1.3.tgz
+    version: 0.1.3
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
         - kind: added
           description: "jwtSigningKeyProperty — configurable key name in remote secret for base64-encoded RSA PEM"
         - kind: added
@@ -94,4 +141,4 @@ entries:
     urls:
     - https://github.com/trejo08/charts/releases/download/marble-0.1.0/marble-0.1.0.tgz
     version: 0.1.0
-generated: "2026-05-26T22:07:13.900049117Z"
+generated: "2026-05-27T00:01:03.310965591Z"
