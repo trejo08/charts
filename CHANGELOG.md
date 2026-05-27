@@ -9,6 +9,17 @@ Charts follow [Semantic Versioning](https://semver.org/).
 
 ## marble
 
+### [0.1.5] - 2026-05-26
+
+#### Fixed
+
+- Both ExternalSecrets (`<release>-secrets` and `<release>-secrets-jwt`) now have
+  `pre-install,pre-upgrade` hook annotations with weight `-10` and
+  `hook-delete-policy: before-hook-creation`. This ensures ESO creates both K8s Secrets before
+  the migrations Job (weight `-5`) attempts to mount them.
+
+---
+
 ### [0.1.4] - 2026-05-26
 
 #### Fixed

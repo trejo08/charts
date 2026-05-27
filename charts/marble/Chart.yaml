@@ -2,7 +2,7 @@ apiVersion: v2
 name: marble
 description: Kubernetes Helm chart for Marble — open-source fraud detection and AML platform
 type: application
-version: 0.1.4
+version: 0.1.5
 appVersion: "1.1.0"
 keywords:
   - fraud-detection
@@ -33,4 +33,4 @@ annotations:
       image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-frontend:v1.1.1
   artifacthub.io/changes: |
     - kind: fixed
-      description: "Removed unnecessary initContainer from migrations Job — hook weight ordering handles sequencing correctly"
+      description: "Both ExternalSecrets (main and jwt) now have pre-install/pre-upgrade hook annotations with weight -10 so ESO creates the K8s Secrets before the migrations Job (weight -5) runs"
