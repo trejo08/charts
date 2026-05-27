@@ -9,6 +9,16 @@ Charts follow [Semantic Versioning](https://semver.org/).
 
 ## marble
 
+### [0.1.4] - 2026-05-26
+
+#### Fixed
+
+- Removed unnecessary `initContainer` (`wait-for-secret`) from the migrations Job. The correct
+  ordering is handled by Helm hook weights: ServiceAccount (-15), ExternalSecret (-10),
+  migrations Job (-5).
+
+---
+
 ### [0.1.3] - 2026-05-26
 
 #### Changed

@@ -2,7 +2,7 @@ apiVersion: v2
 name: marble
 description: Kubernetes Helm chart for Marble — open-source fraud detection and AML platform
 type: application
-version: 0.1.3
+version: 0.1.4
 appVersion: "1.1.0"
 keywords:
   - fraud-detection
@@ -32,11 +32,5 @@ annotations:
     - name: marble-frontend
       image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-frontend:v1.1.1
   artifacthub.io/changes: |
-    - kind: changed
-      description: "jwtSigningKeyProperty only required when remote secret key name differs from default JWT_SIGNING_KEY_B64"
-    - kind: changed
-      description: "AUTHENTICATION_JWT_SIGNING_KEY_FILE injected via env[] only when jwtSigningKeyProperty is set; env[] takes precedence over envFrom"
-    - kind: added
-      description: "marble.validateSecrets gate — fails at render time if secret configuration is incomplete"
-    - kind: added
-      description: "ArtifactHub support: artifacthub-repo.yml, LICENSE, Chart.yaml annotations, gh-pages publish step"
+    - kind: fixed
+      description: "Removed unnecessary initContainer from migrations Job — hook weight ordering handles sequencing correctly"

@@ -27,18 +27,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      initContainers:
-        - name: wait-for-secret
-          image: bitnami/kubectl:latest
-          command:
-            - sh
-            - -c
-            - |
-              until kubectl get secret {{ include "marble.secretName" . }} -n {{ .Release.Namespace }} >/dev/null 2>&1; do
-                echo "Waiting for secret {{ include "marble.secretName" . }}...";
-                sleep 5;
-              done
-              echo "Secret ready."
       containers:
         - name: migrations
           image: "{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}"
