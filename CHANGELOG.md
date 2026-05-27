@@ -9,6 +9,25 @@ Charts follow [Semantic Versioning](https://semver.org/).
 
 ## marble
 
+### [0.1.3] - 2026-05-26
+
+#### Changed
+
+- `marble.jwtMountPath` helper gate logic clarified: `jwtSigningKeyProperty` only needs to be
+  declared when the key name in the remote secret differs from the default `JWT_SIGNING_KEY_B64`.
+  In the standard case the default covers it and no override is needed in values.
+- `AUTHENTICATION_JWT_SIGNING_KEY_FILE` injected via `env[]` only when `jwtSigningKeyProperty`
+  is non-empty. If the env var is also present in the remote secret it arrives via `envFrom` —
+  `env[]` takes precedence, ensuring the chart-controlled mount path always wins.
+- Secret management validation (`marble.validateSecrets`) now fails at render time with a clear
+  message if neither `externalSecret` nor `existingSecret` is configured, or if required ESO
+  fields (`clusterSecretStore`, `remoteSecretName`) are missing.
+- ArtifactHub support: added `artifacthub-repo.yml`, `LICENSE`, chart annotations
+  (`artifacthub.io/license`, `category`, `links`, `images`, `changes`), and workflow step to
+  publish `artifacthub-repo.yml` to `gh-pages` on every release.
+
+---
+
 ### [0.1.2] - 2026-05-26
 
 #### Added

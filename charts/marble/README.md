@@ -22,7 +22,7 @@ helm install marble trejo08/marble \
 Or via OCI:
 
 ```bash
-helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.2
+helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.3
 ```
 
 ## Architecture

@@ -1,3 +1,4 @@
+{{- include "marble.validateSecrets" . }}
 Marble has been deployed successfully.
 
 API endpoint:

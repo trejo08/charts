@@ -84,15 +84,43 @@ external-secrets.io/v1beta1
 {{- end }}
 
 {{/*
-JWT signing key mount path.
-When externalSecret.jwtSigningKeyProperty is set, the decoded PEM is mounted at /secrets/jwt.pem
-from the <secretName>-jwt Secret. Can be overridden via marble.auth.jwtSigningKeyFile.
+JWT signing key mount path — gate logic:
+
+jwtSigningKeyProperty (default: "JWT_SIGNING_KEY_B64"):
+  Controls which key in the remote secret contains the base64-encoded PEM.
+  If empty → no second ExternalSecret is created, no volume is mounted, chart injects nothing.
+
+AUTHENTICATION_JWT_SIGNING_KEY_FILE:
+  If defined in the remote secret → arrives via envFrom and dictates the mount path.
+  If NOT defined in the remote secret → chart injects it via env[] with default /secrets/jwt.pem.
+  marble.auth.jwtSigningKeyFile overrides the mount path explicitly if set.
+
+Result:
+  - jwtSigningKeyProperty non-empty → return mount path (jwtSigningKeyFile override or /secrets/jwt.pem)
+  - jwtSigningKeyProperty empty     → return empty (nothing mounted, nothing injected)
 */}}
 {{- define "marble.jwtMountPath" -}}
+{{- if .Values.marble.externalSecret.jwtSigningKeyProperty -}}
 {{- if .Values.marble.auth.jwtSigningKeyFile -}}
 {{- .Values.marble.auth.jwtSigningKeyFile -}}
-{{- else if and .Values.marble.externalSecret.enabled .Values.marble.externalSecret.jwtSigningKeyProperty -}}
+{{- else -}}
 /secrets/jwt.pem
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Secret management gate — fails loudly at render time if neither ESO nor an existing secret is configured.
+*/}}
+{{- define "marble.validateSecrets" -}}
+{{- if and (not .Values.marble.externalSecret.enabled) (not .Values.marble.existingSecret.enabled) -}}
+{{- fail "marble: secret configuration required. Set marble.externalSecret.enabled=true (with clusterSecretStore and remoteSecretName) or marble.existingSecret.enabled=true with a pre-existing K8s Secret named '<release>-secrets'." -}}
+{{- end -}}
+{{- if and .Values.marble.externalSecret.enabled (not .Values.marble.externalSecret.clusterSecretStore) -}}
+{{- fail "marble: marble.externalSecret.clusterSecretStore is required when externalSecret.enabled=true." -}}
+{{- end -}}
+{{- if and .Values.marble.externalSecret.enabled (not .Values.marble.externalSecret.remoteSecretName) -}}
+{{- fail "marble: marble.externalSecret.remoteSecretName is required when externalSecret.enabled=true." -}}
 {{- end -}}
 {{- end }}
 
@@ -153,6 +181,8 @@ Backend env vars — shared by api, worker, analytics, and migrations.
 {{- else }}
 {{- $jwtPath := include "marble.jwtMountPath" . }}
 {{- if $jwtPath }}
+{{/* env[] takes precedence over envFrom[] — if AUTHENTICATION_JWT_SIGNING_KEY_FILE is also
+     present in the remote secret it is overridden by this explicit value, which is correct. */}}
 - name: AUTHENTICATION_JWT_SIGNING_KEY_FILE
   value: {{ $jwtPath | quote }}
 {{- end }}
