@@ -18,11 +18,12 @@ helm install marble trejo08/marble \
 Or via OCI:
 
 ```bash
-helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.6 \
+helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.7 \
   --namespace marble \
   --set marble.externalSecret.enabled=true \
   --set marble.externalSecret.clusterSecretStore=<store-name> \
-  --set marble.externalSecret.remoteSecretName=<secret-name>
+  --set marble.externalSecret.remoteSecretName=<secret-name> \
+  --set marble.firebase.gcpServiceAccountProperty=GCP_SERVICE_ACCOUNT_B64
 ```
 
 ## Architecture
