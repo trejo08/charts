@@ -3,7 +3,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "marble.fullname" . }}-frontend
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "marble.namespace" . }}
   labels:
     {{- include "marble.labels" . | nindent 4 }}
     app.kubernetes.io/component: frontend

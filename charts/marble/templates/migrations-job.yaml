@@ -3,7 +3,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "marble.fullname" . }}-migrations
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "marble.namespace" . }}
   labels:
     {{- include "marble.labels" . | nindent 4 }}
     app.kubernetes.io/component: migrations

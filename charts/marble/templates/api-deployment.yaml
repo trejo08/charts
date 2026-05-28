@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "marble.fullname" . }}-api
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "marble.namespace" . }}
   labels:
     {{- include "marble.labels" . | nindent 4 }}
     app.kubernetes.io/component: api

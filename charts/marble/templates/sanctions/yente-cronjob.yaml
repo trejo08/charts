@@ -4,7 +4,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ include "marble.fullname" . }}-yente-index
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "marble.namespace" . }}
   labels:
     {{- include "marble.labels" . | nindent 4 }}
     app.kubernetes.io/component: sanctions-yente

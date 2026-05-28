@@ -172,10 +172,17 @@ ingress:
 marble:
   env: production
   appUrl: ""           # https://marble.example.com — REQUIRED
+  apiUrl: ""           # Public URL of the backend API (returned to frontend via /config). Auto-set from ingress if empty.
+  port: "8080"         # TCP port the backend HTTP server listens on
   licenseKey: ""
   disableSegment: "false"
   loggingFormat: json
   requestLoggingLevel: ""
+  # Shared secret between marble-backend and the screening indexer (motiva/yente).
+  # Must be stable across restarts and identical on both sides.
+  # If empty, backend auto-generates a random UUID per restart (breaks self-hosted sanctions).
+  # Sourced from the main ESO secret when externalSecret.enabled=true (key: SCREENING_INDEXER_TOKEN).
+  screeningIndexerToken: ""
 
   # PostgreSQL (PostGIS extension required)
   # Use connectionString OR individual vars, not both
@@ -205,7 +212,19 @@ marble:
     apiKey: ""
     projectId: ""
     googleCloudProject: ""
-    # K8s Secret containing firebase.json (GCP service account)
+    # Auth domain served to the frontend via /config.
+    # Defaults to "<project_id>.firebaseapp.com" if empty (backend logs a warning).
+    # Set to your app domain (e.g. marble.example.com) when using a custom Firebase auth domain.
+    authDomain: ""
+    # GCP service account JSON — required for Firebase Admin SDK on non-GCP infrastructure.
+    # The chart creates a dedicated ExternalSecret that extracts this key from the remote
+    # secret backend, base64-decodes it, and writes it as firebase.json inside a separate
+    # K8s Secret that is then volume-mounted into every backend pod.
+    # GOOGLE_APPLICATION_CREDENTIALS is automatically set to <credentialsMountPath>/<credentialsKey>.
+    # Set to "" to disable and manage the K8s Secret externally via credentialsSecretName below.
+    gcpServiceAccountProperty: "GCP_SERVICE_ACCOUNT_B64"
+    # Name of an existing K8s Secret containing the GCP service account JSON.
+    # Only used when gcpServiceAccountProperty is "".
     credentialsSecretName: ""
     credentialsKey: "firebase.json"
     credentialsMountPath: "/secrets/firebase"
@@ -269,10 +288,14 @@ marble:
 # FRONTEND CONFIG
 # ============================================================
 frontendConfig:
-  sessionSecret: ""       # REQUIRED — secure random string (min 32 chars)
+  # SESSION_SECRET comes from the ESO-managed secret (key: SESSION_SECRET in the remote secret).
+  # Do not set it here — it is already in the K8s Secret created by ExternalSecret.
   sessionMaxAge: "43200"  # seconds (12h default)
   # Internal URL to the API. Auto-constructed if empty: http://{{ fullname }}-api:8080
   marbleApiUrl: ""
+  appVersion: ""
+  sentryDsn: ""
+  sentryEnvironment: ""
 
 # ============================================================
 # SANCTIONS SCREENING (optional)

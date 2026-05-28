@@ -4,7 +4,7 @@ apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
   name: {{ include "marble.fullname" . }}-sanctions
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "marble.namespace" . }}
   labels:
     {{- include "marble.labels" . | nindent 4 }}
     app.kubernetes.io/component: sanctions-elasticsearch

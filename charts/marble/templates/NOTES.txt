@@ -9,7 +9,7 @@ API endpoint:
   http://{{ .Values.ingress.frontend.hostname }}
   {{- end }}
 {{- else }}
-  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "marble.fullname" . }}-frontend 8080:{{ .Values.frontend.port }}
+  kubectl port-forward -n {{ include "marble.namespace" . }} svc/{{ include "marble.fullname" . }}-frontend 8080:{{ .Values.frontend.port }}
   http://localhost:8080
 {{- end }}
 
@@ -36,10 +36,10 @@ Components deployed:
 {{- end }}
 
 Verify pods are running:
-  kubectl -n {{ .Release.Namespace }} get pods
+  kubectl -n {{ include "marble.namespace" . }} get pods
 
 Check API liveness:
-  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "marble.fullname" . }}-api -- \
+  kubectl -n {{ include "marble.namespace" . }} exec deploy/{{ include "marble.fullname" . }}-api -- \
     wget -qO- http://localhost:{{ .Values.api.port }}/liveness
 
 Documentation: https://docs.checkmarble.com

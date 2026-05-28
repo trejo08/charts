@@ -84,6 +84,32 @@ external-secrets.io/v1beta1
 {{- end }}
 
 {{/*
+Namespace — single source of truth.
+When namespace.create=true the chart owns the namespace and uses namespace.name.
+Otherwise falls back to .Release.Namespace (set by --namespace flag or ArgoCD destination).
+*/}}
+{{- define "marble.namespace" -}}
+{{- if .Values.namespace.create -}}
+{{- .Values.namespace.name -}}
+{{- else -}}
+{{- .Release.Namespace -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+GCP service account JSON secret name — resolves which K8s Secret holds firebase.json.
+Priority: gcpServiceAccountProperty (ESO-managed) > credentialsSecretName (externally managed).
+Returns empty string when neither is configured (no volume mounted, GOOGLE_APPLICATION_CREDENTIALS not set).
+*/}}
+{{- define "marble.gcpSASecretName" -}}
+{{- if .Values.marble.firebase.gcpServiceAccountProperty -}}
+{{- printf "%s-firebase-sa" (include "marble.fullname" .) -}}
+{{- else if .Values.marble.firebase.credentialsSecretName -}}
+{{- .Values.marble.firebase.credentialsSecretName -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 JWT signing key mount path — gate logic:
 
 jwtSigningKeyProperty (default: "JWT_SIGNING_KEY_B64"):
@@ -138,10 +164,16 @@ Backend envFrom — secret ref rendered as a separate block from env:.
 Backend env vars — shared by api, worker, analytics, and migrations.
 */}}
 {{- define "marble.backendEnv" -}}
+- name: PORT
+  value: {{ .Values.marble.port | quote }}
 - name: ENV
   value: {{ .Values.marble.env | quote }}
 - name: APP_URL
   value: {{ .Values.marble.appUrl | quote }}
+{{- if .Values.marble.apiUrl }}
+- name: MARBLE_API_URL
+  value: {{ .Values.marble.apiUrl | quote }}
+{{- end }}
 {{- if .Values.marble.licenseKey }}
 - name: LICENSE_KEY
   value: {{ .Values.marble.licenseKey | quote }}
@@ -200,10 +232,19 @@ Backend env vars — shared by api, worker, analytics, and migrations.
 - name: GOOGLE_CLOUD_PROJECT
   value: {{ .Values.marble.firebase.googleCloudProject | quote }}
 {{- end }}
-{{- if .Values.marble.firebase.credentialsSecretName }}
+{{- if .Values.marble.firebase.authDomain }}
+- name: FIREBASE_AUTH_DOMAIN
+  value: {{ .Values.marble.firebase.authDomain | quote }}
+{{- end }}
+{{- $gcpSASecret := include "marble.gcpSASecretName" . }}
+{{- if $gcpSASecret }}
 - name: GOOGLE_APPLICATION_CREDENTIALS
   value: {{ printf "%s/%s" .Values.marble.firebase.credentialsMountPath .Values.marble.firebase.credentialsKey | quote }}
 {{- end }}
+{{- end }}
+{{- if .Values.marble.screeningIndexerToken }}
+- name: SCREENING_INDEXER_TOKEN
+  value: {{ .Values.marble.screeningIndexerToken | quote }}
 {{- end }}
 {{- if .Values.marble.oidc.enabled }}
 - name: OIDC_ISSUER
@@ -273,13 +314,14 @@ Backend env vars — shared by api, worker, analytics, and migrations.
 {{- end }}
 
 {{/*
-Backend volumes — Firebase JSON, JWT PEM, client DB config.
+Backend volumes — GCP SA JSON, JWT PEM, client DB config.
 */}}
 {{- define "marble.backendVolumes" -}}
-{{- if .Values.marble.firebase.credentialsSecretName }}
+{{- $gcpSASecret := include "marble.gcpSASecretName" . }}
+{{- if $gcpSASecret }}
 - name: firebase-credentials
   secret:
-    secretName: {{ .Values.marble.firebase.credentialsSecretName }}
+    secretName: {{ $gcpSASecret }}
     items:
       - key: {{ .Values.marble.firebase.credentialsKey }}
         path: {{ .Values.marble.firebase.credentialsKey }}
@@ -307,7 +349,8 @@ Backend volumes — Firebase JSON, JWT PEM, client DB config.
 Backend volume mounts.
 */}}
 {{- define "marble.backendVolumeMounts" -}}
-{{- if .Values.marble.firebase.credentialsSecretName }}
+{{- $gcpSASecret := include "marble.gcpSASecretName" . }}
+{{- if $gcpSASecret }}
 - name: firebase-credentials
   mountPath: {{ .Values.marble.firebase.credentialsMountPath }}
   readOnly: true
