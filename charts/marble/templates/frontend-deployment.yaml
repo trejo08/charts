@@ -40,34 +40,6 @@ spec:
           env:
             - name: MARBLE_API_URL
               value: {{ default (printf "http://%s-api:%d" (include "marble.fullname" .) (.Values.api.port | int)) .Values.frontendConfig.marbleApiUrl | quote }}
-            {{- if .Values.marble.appUrl }}
-            - name: MARBLE_APP_URL
-              value: {{ .Values.marble.appUrl | quote }}
-            {{- end }}
-            {{- if .Values.marble.env }}
-            - name: ENV
-              value: {{ .Values.marble.env | quote }}
-            {{- end }}
-            {{- if .Values.frontendConfig.sessionMaxAge }}
-            - name: SESSION_MAX_AGE
-              value: {{ .Values.frontendConfig.sessionMaxAge | quote }}
-            {{- end }}
-            {{- if .Values.frontendConfig.appVersion }}
-            - name: APP_VERSION
-              value: {{ .Values.frontendConfig.appVersion | quote }}
-            {{- end }}
-            {{- if .Values.frontendConfig.sentryDsn }}
-            - name: SENTRY_DSN
-              value: {{ .Values.frontendConfig.sentryDsn | quote }}
-            {{- end }}
-            {{- if .Values.frontendConfig.sentryEnvironment }}
-            - name: SENTRY_ENVIRONMENT
-              value: {{ .Values.frontendConfig.sentryEnvironment | quote }}
-            {{- end }}
-            {{- if .Values.marble.disableSegment }}
-            - name: DISABLE_SEGMENT
-              value: {{ .Values.marble.disableSegment | quote }}
-            {{- end }}
           readinessProbe:
             httpGet:
               path: {{ .Values.frontend.probes.readiness.path }}

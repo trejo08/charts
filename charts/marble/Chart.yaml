@@ -2,7 +2,7 @@ apiVersion: v2
 name: marble
 description: Kubernetes Helm chart for Marble — open-source fraud detection and AML platform
 type: application
-version: 0.1.6
+version: 0.1.7
 appVersion: "1.1.0"
 keywords:
   - fraud-detection
@@ -32,9 +32,7 @@ annotations:
     - name: marble-frontend
       image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-frontend:v1.1.1
   artifacthub.io/changes: |
-    - kind: added
-      description: "GCP service account JSON support via dedicated ExternalSecret (gcpServiceAccountProperty) — fixes Firebase Admin SDK on non-GCP infrastructure"
-    - kind: added
-      description: "FIREBASE_AUTH_DOMAIN, PORT, MARBLE_API_URL, SCREENING_INDEXER_TOKEN injected into backend pods"
-    - kind: added
-      description: "Frontend: ENV, APP_VERSION, SENTRY_DSN, SENTRY_ENVIRONMENT, DISABLE_SEGMENT env vars"
+    - kind: changed
+      description: "backendEnv stripped of all static vars — only dynamically constructed mount paths remain; all config comes via envFrom from ESO secret"
+    - kind: changed
+      description: "Frontend: all static env vars removed — only MARBLE_API_URL (auto-constructed) remains inline; everything else via envFrom"
