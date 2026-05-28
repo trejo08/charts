@@ -45,8 +45,9 @@ jobs:
       - name: Publish artifacthub-repo.yml to gh-pages
         run: |
           git fetch origin gh-pages
+          git show main:artifacthub-repo.yml > /artifacthub-repo.yml
           git checkout gh-pages
-          cp artifacthub-repo.yml artifacthub-repo.yml
+          cp /artifacthub-repo.yml artifacthub-repo.yml
           git add artifacthub-repo.yml
           git diff --cached --quiet || git commit -m "chore: update artifacthub-repo.yml"
           git push origin gh-pages
