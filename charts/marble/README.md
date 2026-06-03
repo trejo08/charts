@@ -18,7 +18,7 @@ helm install marble trejo08/marble \
 Or via OCI:
 
 ```bash
-helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.7 \
+helm install marble oci://ghcr.io/trejo08/charts/marble --version 0.1.8 \
   --namespace marble \
   --set marble.externalSecret.enabled=true \
   --set marble.externalSecret.clusterSecretStore=<store-name> \
@@ -244,6 +244,13 @@ via `dataFrom.extract` and makes them available as env vars inside every backend
 | `CREATE_GLOBAL_ADMIN_EMAIL` | Seed a global Marble admin on first startup |
 | `CREATE_ORG_NAME` | Seed an initial organization on first startup |
 | `CREATE_ORG_ADMIN_EMAIL` | Admin email for the seeded organization |
+
+> **Critical — order of operations for first deploy:**
+> 1. Create the admin user in **Firebase Console → Authentication → Users** first, before the migrations Job runs.
+> 2. Add `CREATE_GLOBAL_ADMIN_EMAIL`, `CREATE_ORG_NAME`, and `CREATE_ORG_ADMIN_EMAIL` to the remote secret.
+> 3. Deploy the chart — the migrations Job runs and seeds the org and admin user, linking them to the existing Firebase user.
+>
+> If the Firebase user does not exist when the seeder runs, the Marble user record is created without a Firebase UID and login will silently fail even though `POST /token` returns 200. To recover: drop the database and redeploy following the correct order.
 
 #### Optional — frontend (marble-frontend process)
 

@@ -10,7 +10,8 @@ metadata:
   labels:
     {{- $labels | nindent 4 }}
     app.kubernetes.io/component: frontend
-  {{- with .Values.ingress.annotations }}
+  {{- $frontendAnnotations := merge (deepCopy (.Values.ingress.annotations | default dict)) (.Values.ingress.frontend.annotations | default dict) }}
+  {{- with $frontendAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -45,7 +46,8 @@ metadata:
   labels:
     {{- $labels | nindent 4 }}
     app.kubernetes.io/component: api
-  {{- with .Values.ingress.annotations }}
+  {{- $apiAnnotations := merge (deepCopy (.Values.ingress.annotations | default dict)) (.Values.ingress.api.annotations | default dict) }}
+  {{- with $apiAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
