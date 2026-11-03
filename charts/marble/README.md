@@ -75,42 +75,77 @@ via `dataFrom.extract` and makes them available as env vars inside every backend
 | `PG_CONNECTION_STRING` | Full PostgreSQL DSN: `postgres://user:pass@host:5432/db?sslmode=require` |
 | `PORT` | TCP port the backend HTTP server listens on (e.g. `8080`) |
 | `ENV` | Environment name: `production` |
-| `APP_URL` | Public URL of the frontend app: `https://marble.example.com` |
-| `MARBLE_APP_URL` | Same as `APP_URL` — both vars are read by different parts of marble-backend |
-| `FIREBASE_API_KEY` | Firebase Web API key (from Firebase Console → Project Settings → General) |
+| `MARBLE_APP_URL` | Public URL of the frontend app: `https://marble.example.com` |
+| `FIREBASE_API_KEY` | Firebase Web API key (from Firebase Console → Project Settings → General → Your apps) |
 | `FIREBASE_PROJECT_ID` | Firebase / GCP project ID |
 | `GOOGLE_CLOUD_PROJECT` | GCP project ID (same value as `FIREBASE_PROJECT_ID` in most cases) |
-| `FIREBASE_AUTH_DOMAIN` | Firebase auth domain for OAuth redirects. Set to your app domain (e.g. `marble.example.com`) or `<project-id>.firebaseapp.com` |
+| `FIREBASE_AUTH_DOMAIN` | Set to `<project-id>.firebaseapp.com` — **not** your custom app domain. Marble uses `signInWithPopup` which requires Firebase's own domain to load the auth iframe. Setting this to a custom domain will cause login to silently fail. |
 | `INGESTION_BUCKET_URL` | Blob storage URL for data ingestion: `s3://marble-ingestion` |
 | `CASE_MANAGER_BUCKET_URL` | Blob storage URL for case attachments: `s3://marble-cases` |
-| `SESSION_SECRET` | Secure random string for frontend session cookie signing (min 32 chars) |
+| `SESSION_SECRET` | Secure random string for frontend session cookie signing. Generate: `openssl rand -base64 48` |
 | `JWT_SIGNING_KEY_B64` | RSA 4096 private key PEM **base64-encoded** — see generation instructions below |
 | `GCP_SERVICE_ACCOUNT_B64` | GCP service account JSON **base64-encoded** — required for Firebase Admin SDK on non-GCP infra — see instructions below |
 
 #### Recommended
 
+| Key | Default | Description |
+|-----|---------|-------------|
+| `ANALYTICS_BUCKET_URL` | — | Blob storage URL for analytics Parquet exports: `s3://marble-analytics` |
+| `LOGGING_FORMAT` | `text` | Log format: `json` (recommended for production) or `text` or `gcp` |
+| `PG_MAX_POOL_SIZE` | `40` | PostgreSQL connection pool size |
+| `DISABLE_SEGMENT` | `false` | Set to `true` to disable Segment analytics telemetry |
+| `REQUEST_LOGGING_LEVEL` | `all` | HTTP request log verbosity: `all`, `liveness`, or empty (disabled) |
+| `SCREENING_INDEXER_TOKEN` | auto-generated | Shared secret between marble-backend and sanctions indexer. Must be stable — if absent, a random UUID is generated per restart, breaking self-hosted sanctions. Generate: `openssl rand -hex 32` |
+
+#### Optional — authentication (Firebase)
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `AUTH_PROVIDER` | `firebase` | Authentication provider: `firebase` or `oidc` |
+| `FIREBASE_AUTH_EMULATOR_HOST` | — | Firebase emulator host for local dev (e.g. `localhost:9099`) |
+
+#### Optional — authentication (OIDC)
+
 | Key | Description |
 |-----|-------------|
-| `SCREENING_INDEXER_TOKEN` | Shared secret between marble-backend and the sanctions indexer (motiva/yente). Must be stable across restarts. If absent, a random token is generated per restart, breaking self-hosted sanctions. Generate with: `openssl rand -hex 32` |
-| `ANALYTICS_BUCKET_URL` | Blob storage URL for analytics Parquet exports: `s3://marble-analytics` |
-| `LOGGING_FORMAT` | Log format: `json` (recommended for production) or `text` |
-| `PG_MAX_POOL_SIZE` | PostgreSQL connection pool size (default: `40`) |
-| `DISABLE_SEGMENT` | Set to `true` to disable Segment analytics telemetry |
-
-#### Optional — authentication
-
-| Key | Description |
-|-----|-------------|
-| `AUTHENTICATION_JWT_SIGNING_KEY_FILE` | Path to the JWT PEM file. Set to `/secrets/jwt.pem` when using the ESO JWT secret (the chart injects this automatically when `jwtSigningKeyProperty` is set). |
-| `AUTH_PROVIDER` | `firebase` (default) or `oidc` |
-| `AUTH_OIDC_ISSUER` | OIDC issuer URL (when `AUTH_PROVIDER=oidc`) |
-| `AUTH_OIDC_CLIENT_ID` | OIDC client ID |
-| `AUTH_OIDC_CLIENT_SECRET` | OIDC client secret |
+| `AUTH_OIDC_ISSUER` | OIDC issuer URL |
+| `AUTH_OIDC_CLIENT_ID` | OAuth client ID |
+| `AUTH_OIDC_CLIENT_SECRET` | OAuth client secret |
 | `AUTH_OIDC_SCOPE` | Comma-separated scopes (default: `openid,profile,email,offline_access`) |
 | `AUTH_OIDC_ALLOWED_DOMAINS` | Comma-separated allowed email domains |
 | `AUTH_OIDC_EXTRA_PARAMS` | URL-encoded extra params (e.g. `prompt=consent&access_type=offline`) |
 | `AUTH_OIDC_EMAIL_CLAIM` | Override email claim (e.g. `upn` for Entra ID) |
-| `LICENSE_KEY` | Marble license key for premium features (SSO, advanced screening) |
+
+#### Optional — JWT signing
+
+| Key | Description |
+|-----|-------------|
+| `AUTHENTICATION_JWT_SIGNING_KEY` | Inline RSA PEM (not recommended in production — use file mount instead) |
+| `AUTHENTICATION_JWT_SIGNING_KEY_FILE` | Path to JWT PEM file. The chart injects this automatically when `jwtSigningKeyProperty` is set (`/secrets/jwt.pem`) |
+| `TOKEN_LIFETIME_MINUTE` | JWT token lifetime in minutes (default: `120`) |
+
+#### Optional — database
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `PG_SSL_MODE` | `prefer` | PostgreSQL SSL mode: `disable`, `allow`, `prefer`, `require`, `verify-ca`, `verify-full` |
+| `PG_IMPERSONATE_ROLE` | — | Role to `SET ROLE` after connect (for IAM-auth RBAC) |
+| `PG_DATABASE` | `marble` | Database name (when not using `PG_CONNECTION_STRING`) |
+| `PG_HOSTNAME` | — | Database host (when not using `PG_CONNECTION_STRING`) |
+| `PG_PORT` | `5432` | Database port (when not using `PG_CONNECTION_STRING`) |
+| `PG_USER` | — | Database user (when not using `PG_CONNECTION_STRING`) |
+| `PG_PASSWORD` | — | Database password (when not using `PG_CONNECTION_STRING`) |
+| `CLIENT_DB_CONFIG_FILE` | — | Path to per-org database config JSON (enterprise multi-tenancy) |
+
+#### Optional — Redis
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `REDIS_HOST` | — | Redis address: `host:6379` |
+| `REDIS_KEY` | — | Redis auth password |
+| `REDIS_TLS` | `false` | Enable Redis TLS |
+| `REDIS_TLS_SKIP_VERIFY` | `false` | Skip Redis TLS cert verification |
+| `CACHE_ENABLED` | `false` | Enable Redis caching layer |
 
 #### Optional — storage
 
@@ -119,32 +154,24 @@ via `dataFrom.extract` and makes them available as env vars inside every backend
 | `OFFLOADING_BUCKET_URL` | Blob storage URL for data offloading |
 | `CONTINUOUS_SCREENING_BUCKET_URL` | Blob storage URL for continuous screening datasets |
 
-#### Optional — database
+#### Optional — application URLs
 
-| Key | Description |
-|-----|-------------|
-| `PG_SSL_MODE` | PostgreSQL SSL mode: `disable`, `allow`, `prefer`, `require`, `verify-ca`, `verify-full` |
-| `PG_IMPERSONATE_ROLE` | Role to `SET ROLE` after connect (for IAM-auth RBAC) |
-
-#### Optional — Redis
-
-| Key | Description |
-|-----|-------------|
-| `REDIS_HOST` | Redis address: `redis:6379` |
-| `REDIS_KEY` | Redis auth password |
-| `REDIS_TLS` | Enable Redis TLS: `true` or `false` |
-| `REDIS_TLS_SKIP_VERIFY` | Skip Redis TLS cert verification: `true` or `false` |
+| Key | Default | Description |
+|-----|---------|-------------|
+| `MARBLE_API_URL` | — | Public URL of the backend API (returned to frontend via `/config`) |
+| `MARBLE_API_INTERNAL_URL` | falls back to `MARBLE_API_URL` | Internal URL for server-to-server calls |
+| `MARBLE_BACKOFFICE_URL` | — | URL of the Marble backoffice app |
 
 #### Optional — timeouts (server)
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `TOKEN_LIFETIME_MINUTE` | `120` | Marble JWT token lifetime in minutes |
 | `BATCH_TIMEOUT_SECOND` | `55` | Batch ingestion request timeout in seconds |
 | `DECISION_TIMEOUT_SECOND` | `10` | Decision evaluation timeout in seconds |
 | `DEFAULT_TIMEOUT_SECOND` | `5` | Default request timeout in seconds |
 | `ANALYTICS_TIMEOUT` | `15s` | Analytics query timeout (Go duration string) |
 | `BATCH_INGESTION_MAX_SIZE` | `0` (unlimited) | Max records per batch ingestion call |
+| `WEBHOOK_IP_WHITELIST` | — | Comma-separated allowed webhook source IPs |
 
 #### Optional — data offloading (worker)
 
@@ -168,8 +195,8 @@ via `dataFrom.extract` and makes them available as env vars inside every backend
 | `METRICS_COLLECTION_JOB_INTERVAL` | `1h` | Metrics collection job frequency |
 | `METRICS_FALLBACK_DURATION` | `720h` | Metrics collection fallback window (30 days) |
 | `DISABLE_TELEMETRY` | `false` | Disable metrics collection worker job |
-| `CACHE_ENABLED` | `false` | Enable in-memory caching layer |
 | `SIMILARITY_THRESHOLD` | model default | Fuzzy match threshold for screening (0–1 float) |
+| `AI_CASE_REVIEW_TIMEOUT` | `5m` | Case review AI operation timeout |
 
 #### Optional — analytics export (worker)
 
@@ -180,22 +207,14 @@ via `dataFrom.extract` and makes them available as env vars inside every backend
 | `ANALYTICS_BATCH_SIZE` | `10000` | Records per analytics export batch |
 | `ANALYTICS_PROXY_API_URL` | auto | URL of analytics proxy API (auto-constructed from service name when `analytics.enabled=true`) |
 
-#### Optional — application URLs
-
-| Key | Description |
-|-----|-------------|
-| `MARBLE_API_URL` | Public URL of the backend API (returned to frontend via `/config`) |
-| `MARBLE_API_INTERNAL_URL` | Internal URL for server-to-server calls (falls back to `MARBLE_API_URL`) |
-| `MARBLE_BACKOFFICE_URL` | URL of the Marble backoffice app |
-
 #### Optional — webhooks (Convoy)
 
-| Key | Description |
-|-----|-------------|
-| `CONVOY_API_KEY` | Convoy project API key |
-| `CONVOY_API_URL` | Convoy API base URL |
-| `CONVOY_PROJECT_ID` | Convoy project ID |
-| `CONVOY_RATE_LIMIT` | Convoy delivery rate limit (default: `50`) |
+| Key | Default | Description |
+|-----|---------|-------------|
+| `CONVOY_API_KEY` | — | Convoy project API key |
+| `CONVOY_API_URL` | — | Convoy API base URL |
+| `CONVOY_PROJECT_ID` | — | Convoy project ID |
+| `CONVOY_RATE_LIMIT` | `50` | Convoy delivery rate limit |
 
 #### Optional — sanctions screening
 
@@ -206,51 +225,79 @@ via `dataFrom.extract` and makes them available as env vars inside every backend
 | `SCREENING_OPENSANCTIONS_AUTH_METHOD` | `bearer` or `basic` (for self-hosted) |
 | `SCREENING_OPENSANCTIONS_SCOPE` | Dataset scope override |
 | `SCREENING_LEXISNEXIS_API_HOST` | LexisNexis provider host |
+| `SCREENING_LEXISNEXIS_TOKEN` | LexisNexis authentication token |
+| `SCREENING_ALGORITHM` | Screening algorithm type selection |
 | `NAME_RECOGNITION_API_URL` | External name recognition service URL |
 | `NAME_RECOGNITION_API_KEY` | Auth key for name recognition service |
 
 #### Optional — observability
 
-| Key | Description |
-|-----|-------------|
-| `SENTRY_DSN` | Sentry DSN for error tracking (backend and frontend) |
-| `REQUEST_LOGGING_LEVEL` | Request log verbosity: `all`, `liveness`, or empty (disabled) |
-| `ENABLE_TRACING` | Enable OpenTelemetry tracing: `true` or `false` |
-| `TRACING_EXPORTER` | Tracing exporter: `otlp` or `gcp` |
-| `ENABLE_PROMETHEUS` | Expose `/metrics` Prometheus endpoint: `true` or `false` |
+| Key | Default | Description |
+|-----|---------|-------------|
+| `SENTRY_DSN` | — | Sentry DSN for error tracking (backend and frontend) |
+| `ENABLE_TRACING` | `false` | Enable OpenTelemetry tracing |
+| `TRACING_EXPORTER` | `otlp` | Tracing exporter: `otlp` or `gcp` |
+| `TRACING_SAMPLING_RATES` | — | Trace sampling configuration |
+| `ENABLE_PROMETHEUS` | `false` | Expose `/metrics` Prometheus endpoint |
 
 #### Optional — AI agent
 
-| Key | Description |
-|-----|-------------|
-| `AI_AGENT_MAIN_AGENT_KEY` | API key for the AI provider (OpenAI-compatible or AI Studio) |
-| `AI_AGENT_MAIN_AGENT_URL` | AI provider API base URL |
-| `AI_AGENT_MAIN_AGENT_DEFAULT_MODEL` | Default model name (default: `gemini-2.5-flash`) |
-| `AI_AGENT_PERPLEXITY_API_KEY` | Perplexity API key |
+| Key | Default | Description |
+|-----|---------|-------------|
+| `AI_AGENT_MAIN_AGENT_PROVIDER_TYPE` | `openai` | AI provider type |
+| `AI_AGENT_MAIN_AGENT_KEY` | — | API key for the AI provider (OpenAI-compatible or AI Studio) |
+| `AI_AGENT_MAIN_AGENT_URL` | — | AI provider API base URL |
+| `AI_AGENT_MAIN_AGENT_DEFAULT_MODEL` | `gemini-2.5-flash` | Default model name |
+| `AI_AGENT_MAIN_AGENT_BACKEND` | — | AI agent backend service |
+| `AI_AGENT_MAIN_AGENT_PROJECT` | falls back to `GOOGLE_CLOUD_PROJECT` | AI agent GCP project |
+| `AI_AGENT_MAIN_AGENT_LOCATION` | — | AI agent region/location |
+| `AI_AGENT_PERPLEXITY_API_KEY` | — | Perplexity API key |
 
 #### Optional — Metabase embedding
 
+| Key | Default | Description |
+|-----|---------|-------------|
+| `METABASE_SITE_URL` | — | Metabase instance URL |
+| `METABASE_JWT_SIGNING_KEY` | — | HMAC key for Metabase embed tokens |
+| `METABASE_TOKEN_LIFETIME_MINUTE` | `10` | Metabase embed token lifetime in minutes |
+| `METABASE_GLOBAL_DASHBOARD_ID` | — | Metabase global dashboard resource ID |
+
+#### Optional — billing (Lago)
+
 | Key | Description |
 |-----|-------------|
-| `METABASE_SITE_URL` | Metabase instance URL |
-| `METABASE_JWT_SIGNING_KEY` | HMAC key for Metabase embed tokens |
-| `METABASE_TOKEN_LIFETIME_MINUTE` | Metabase embed token lifetime in minutes (default: `10`) |
-| `METABASE_GLOBAL_DASHBOARD_ID` | Metabase global dashboard resource ID |
+| `LAGO_BASE_URL` | Lago billing service base URL |
+| `LAGO_API_KEY` | Lago API authentication key |
+
+#### Optional — licensing
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `LICENSE_KEY` | — | Marble license key for premium features (SSO, advanced screening) |
+| `KILL_IF_READ_LICENSE_ERROR` | `false` | Terminate on license read failure |
+
+#### Optional — BigQuery metrics
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `BIGQUERY_PROJECT_ID` | falls back to `GOOGLE_CLOUD_PROJECT` | BigQuery GCP project ID |
+| `BIGQUERY_METRICS_DATASET` | default constant | BigQuery metrics dataset name |
+| `BIGQUERY_METRICS_TABLE` | default constant | BigQuery metrics table name |
 
 #### Optional — first-run seeding
 
 | Key | Description |
 |-----|-------------|
-| `CREATE_GLOBAL_ADMIN_EMAIL` | Seed a global Marble admin on first startup |
-| `CREATE_ORG_NAME` | Seed an initial organization on first startup |
-| `CREATE_ORG_ADMIN_EMAIL` | Admin email for the seeded organization |
+| `CREATE_GLOBAL_ADMIN_EMAIL` | Seeds a global Marble admin (`MARBLE_ADMIN` role) — platform-wide superuser |
+| `CREATE_ORG_NAME` | Seeds an initial organization |
+| `CREATE_ORG_ADMIN_EMAIL` | Seeds an org admin (`ADMIN` role) scoped to the seeded organization |
 
 > **Critical — order of operations for first deploy:**
 > 1. Create the admin user in **Firebase Console → Authentication → Users** first, before the migrations Job runs.
-> 2. Add `CREATE_GLOBAL_ADMIN_EMAIL`, `CREATE_ORG_NAME`, and `CREATE_ORG_ADMIN_EMAIL` to the remote secret.
+> 2. Add `CREATE_GLOBAL_ADMIN_EMAIL`, `CREATE_ORG_NAME`, and `CREATE_ORG_ADMIN_EMAIL` to the remote secret. Both seeding vars should use the same email if you want one user with full access.
 > 3. Deploy the chart — the migrations Job runs and seeds the org and admin user, linking them to the existing Firebase user.
 >
-> If the Firebase user does not exist when the seeder runs, the Marble user record is created without a Firebase UID and login will silently fail even though `POST /token` returns 200. To recover: drop the database and redeploy following the correct order.
+> If the Firebase user does not exist when the seeder runs, the Marble user record is created without a Firebase UID and login will silently fail even though `POST /token` returns 200. The user will appear in the UI with role `UNKNOWN`. To recover: drop the database and redeploy following the correct order.
 
 #### Optional — frontend (marble-frontend process)
 
@@ -258,9 +305,14 @@ The frontend Node.js process reads these from `envFrom` (same secret as the back
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `SESSION_SECRET` | — | **Required.** Cryptographic secret for session cookie signing. Generate: `openssl rand -base64 48` |
+| `SESSION_SECRET` | **Required** | Cryptographic secret for session cookie signing. Generate: `openssl rand -base64 48` |
 | `SESSION_MAX_AGE` | `43200` | Session cookie max age in seconds (12h) |
 | `DISABLE_SEGMENT` | `false` | Disable Segment analytics (shared key with backend) |
+| `APP_VERSION` | — | Application version string displayed in the UI |
+| `SENTRY_DSN` | — | Sentry DSN (frontend uses same key as backend) |
+| `SENTRY_ENVIRONMENT` | — | Environment label for Sentry |
+| `METABASE_URL` | — | Metabase analytics dashboard URL |
+| `CUSTOM_LOGO_URL` | — | Custom logo URL for white-labeling |
 
 > **Note:** The frontend does NOT need `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, or `FIREBASE_AUTH_DOMAIN` as its own env vars. It receives all Firebase config from the backend `/config` endpoint at runtime.
 
@@ -268,12 +320,12 @@ The frontend Node.js process reads these from `envFrom` (same secret as the back
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `LOG_LEVEL` | — | Set to `debug` to log default env var usage at startup |
-| `DEBUG_ENABLE_PROFILING` | — | Set to `1` to enable `/debug/pprof/*` endpoints |
+| `DEBUG_ENABLE_PROFILING` | `0` | Set to `1` to enable `/debug/pprof/*` endpoints |
 | `DEBUG_PROFILING_MODE` | — | `gcp` or `http` profiling mode |
 | `DEBUG_PROFILING_TOKEN` | — | Bearer token for HTTP profiling endpoint |
 | `FIREBASE_AUTH_EMULATOR_HOST` | — | Firebase emulator host for local development (e.g. `localhost:9099`) |
 | `CLOUD_RUN_PROBE_PORT` | — | Worker: port for Cloud Run health probe HTTP server |
+| `ENABLE_WORKER_ONESHOT` | — | Set to `1` to enable development-only worker flags |
 
 ---
 

@@ -9,6 +9,16 @@ Charts follow [Semantic Versioning](https://semver.org/).
 
 ## marble
 
+### [0.1.9] - 2026-11-03
+
+#### Fixed
+
+- Migrations Job now uses `restartPolicy: Never`. With `OnFailure`, Kubernetes terminates the
+  pod when `backoffLimit` is reached, so the logs of a failed migration were lost. With `Never`
+  each failed attempt keeps its pod and `kubectl logs` works.
+
+---
+
 ### [0.1.5] - 2026-05-26
 
 #### Fixed

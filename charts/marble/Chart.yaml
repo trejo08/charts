@@ -2,7 +2,7 @@ apiVersion: v2
 name: marble
 description: Kubernetes Helm chart for Marble — open-source fraud detection and AML platform
 type: application
-version: 0.1.8
+version: 0.1.9
 appVersion: "1.1.0"
 keywords:
   - fraud-detection
@@ -32,7 +32,5 @@ annotations:
     - name: marble-frontend
       image: europe-west1-docker.pkg.dev/marble-infra/marble/marble-frontend:v1.1.1
   artifacthub.io/changes: |
-    - kind: added
-      description: "ingress.frontend.annotations and ingress.api.annotations — per-component annotation overrides merged with ingress.annotations"
     - kind: fixed
-      description: "ALB healthcheck paths: frontend uses /healthcheck (200-399), API uses /liveness (200)"
+      description: "Migrations Job uses restartPolicy Never so a failed pod is kept and its logs stay readable (OnFailure made Kubernetes terminate the pod when backoffLimit was reached)"

@@ -21,7 +21,7 @@ spec:
         {{- include "marble.labels" . | nindent 8 }}
         app.kubernetes.io/component: migrations
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Never
       serviceAccountName: {{ include "marble.serviceAccountName" . }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
